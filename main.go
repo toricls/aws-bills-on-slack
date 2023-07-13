@@ -31,7 +31,13 @@ func handler(ctx context.Context, event interface{}) ([]byte, error) {
 	}
 
 	var costs acos.Costs
-	if costs, err = acos.GetCosts(ctx, accounts, acos.NewGetCostsOption()); err != nil {
+	opt := acos.AcosGetCostsOption{
+		ExcludeCredit:  true,
+		ExcludeUpfront: true,
+		ExcludeRefund:  false,
+		ExcludeSupport: false,
+	}
+	if costs, err = acos.GetCosts(ctx, accounts, opt); err != nil {
 		return nil, err
 	}
 	res := print(&costs)
