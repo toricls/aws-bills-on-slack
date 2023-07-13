@@ -8,7 +8,19 @@ A monkey increases your visibility on AWS bills via Slack 🐒
 - `aws-bills-on-slack` uses [`toricls/acos`](https://github.com/toricls/acos) as its dependency so you need to follow the [`toricls/acos`'s prerequisites](https://github.com/toricls/acos/blob/main/README.md#prerequisites) to run.
 - Slack Incoming Webhook
 
-## Usage
+## Installation
+
+`aws-bills-on-slack` is built to run on AWS Lambda on a daily basis.
+
+### Install using AWS SAM (tested and recommended)
+
+Todo
+
+### Install using CloudFormation
+
+Todo
+
+### Install using Terraform
 
 Todo
 
