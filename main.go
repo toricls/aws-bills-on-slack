@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -68,6 +69,7 @@ func handler(ctx context.Context, event interface{}) ([]byte, error) {
 	if costs, err = acos.GetCosts(ctx, accounts, opt); err != nil {
 		return nil, err
 	}
+
 	res := print(&costs, asOf, compareTo)
 
 	payload := slack.Payload{
@@ -84,12 +86,20 @@ func handler(ctx context.Context, event interface{}) ([]byte, error) {
 }
 
 func print(costs *acos.Costs, asOf time.Time, compareTo CompareTo) string {
+	// Sort map keys by AWS Account ID
+	keys := make([]string, 0, len(*costs))
+	for k := range *costs {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
 	tableString := &strings.Builder{}
 	t := tablewriter.NewWriter(tableString)
 	t.SetHeader(getHeader(compareTo))
 	t.SetColumnAlignment([]int{tablewriter.ALIGN_LEFT, tablewriter.ALIGN_LEFT, tablewriter.ALIGN_RIGHT, tablewriter.ALIGN_RIGHT, tablewriter.ALIGN_RIGHT})
 	totalThisMonth, totalIncrease, totalLastMonth := 0.0, 0.0, 0.0
-	for _, c := range *costs {
+	for _, k := range keys {
+		c := (*costs)[k]
 		thisMonth := fmt.Sprintf("%f", c.AmountThisMonth)
 		incr := getIncrease(c, compareTo)
 		incrStr := fmt.Sprintf("%s %f", getAmountPrefix(incr), incr)
