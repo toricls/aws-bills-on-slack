@@ -13,14 +13,25 @@ import (
 	"github.com/toricls/acos"
 )
 
+type CompareTo string
+
+const (
+	Yesterday CompareTo = "YESTERDAY"
+	LastWeek  CompareTo = "LAST_WEEK"
+)
+
 func handler(ctx context.Context, event interface{}) ([]byte, error) {
 	var err error
 	var accounts acos.Accounts
 
 	ouId := os.Getenv("OU_ID")
+	if ouId == "" {
+		// Try to get ROOT_OU_ID if OU_ID is not specified
+		ouId = os.Getenv("ROOT_OU_ID")
+	}
 	if ouId != "" {
 		// Get all AWS accounts in the specified OU
-		if accounts, err = acos.ListAccountsByOu(ctx, os.Getenv("OU_ID")); err != nil {
+		if accounts, err = acos.ListAccountsByOu(ctx, ouId); err != nil {
 			return nil, err
 		}
 	} else {
@@ -30,17 +41,27 @@ func handler(ctx context.Context, event interface{}) ([]byte, error) {
 		}
 	}
 
-	var costs acos.Costs
-	opt := acos.AcosGetCostsOption{
-		ExcludeCredit:  true,
-		ExcludeUpfront: true,
-		ExcludeRefund:  false,
-		ExcludeSupport: false,
+	compareTo := Yesterday
+	compareToStr := os.Getenv("COMPARE_TO")
+	switch compareToStr {
+	case string(LastWeek):
+		compareTo = LastWeek
+	case string(Yesterday):
+	default:
+		break
 	}
+
+	asOf, err := time.Parse("2006-01-02", os.Getenv("AS_OF"))
+	if err != nil {
+		asOf = time.Now().UTC()
+	}
+
+	var costs acos.Costs
+	opt := acos.NewGetCostsOption(asOf)
 	if costs, err = acos.GetCosts(ctx, accounts, opt); err != nil {
 		return nil, err
 	}
-	res := print(&costs)
+	res := print(&costs, asOf, compareTo)
 
 	payload := slack.Payload{
 		Text:      "Here's our AWS bills:```\n" + res + "```",
@@ -55,27 +76,44 @@ func handler(ctx context.Context, event interface{}) ([]byte, error) {
 	return nil, nil
 }
 
-func print(costs *acos.Costs) string {
+func print(costs *acos.Costs, asOf time.Time, compareTo CompareTo) string {
 	tableString := &strings.Builder{}
 	t := tablewriter.NewWriter(tableString)
-	t.SetHeader([]string{"Account ID", "Account Name", "This Month ($)", "vs Yesterday ($)", "Last Month ($)"})
+	t.SetHeader(getHeader(compareTo))
 	t.SetColumnAlignment([]int{tablewriter.ALIGN_LEFT, tablewriter.ALIGN_LEFT, tablewriter.ALIGN_RIGHT, tablewriter.ALIGN_RIGHT, tablewriter.ALIGN_RIGHT})
-	totalThisMonth, totalYesterday, totalLastMonth := 0.0, 0.0, 0.0
+	totalThisMonth, totalIncrease, totalLastMonth := 0.0, 0.0, 0.0
 	for _, c := range *costs {
 		thisMonth := fmt.Sprintf("%f", c.AmountThisMonth)
-		vsYesterday := fmt.Sprintf("%s %f", getAmountPrefix(c.LatestDailyCostIncrease), c.LatestDailyCostIncrease)
+		incr := getIncrease(c, compareTo)
+		incrStr := fmt.Sprintf("%s %f", getAmountPrefix(incr), incr)
 		lastMonth := fmt.Sprintf("%f", c.AmountLastMonth)
-		t.Append([]string{c.AccountID, c.AccountName, thisMonth, vsYesterday, lastMonth})
+		t.Append([]string{c.AccountID, c.AccountName, thisMonth, incrStr, lastMonth})
 		totalThisMonth += c.AmountThisMonth
-		totalYesterday += c.LatestDailyCostIncrease
+		totalIncrease += incr
 		totalLastMonth += c.AmountLastMonth
 	}
-	t.SetFooter([]string{"", "Total", fmt.Sprintf("%f", totalThisMonth), fmt.Sprintf("%s %f", getAmountPrefix(totalYesterday), totalYesterday), fmt.Sprintf("%f", totalLastMonth)})
+	t.SetFooter([]string{"", "Total", fmt.Sprintf("%f", totalThisMonth), fmt.Sprintf("%s %f", getAmountPrefix(totalIncrease), totalIncrease), fmt.Sprintf("%f", totalLastMonth)})
 	t.SetFooterAlignment(tablewriter.ALIGN_RIGHT)
-	t.SetCaption(true, fmt.Sprintf("As of %s.", time.Now().Format("2006-01-02")))
+	t.SetCaption(true, fmt.Sprintf("As of %s.", asOf.Format("2006-01-02")))
 	t.Render()
 
 	return tableString.String()
+}
+
+func getHeader(compareTo CompareTo) []string {
+	if compareTo == LastWeek {
+		return []string{"Account ID", "Account Name", "This Month ($)", "vs Last Week ($)", "Last Month ($)"}
+	} else {
+		return []string{"Account ID", "Account Name", "This Month ($)", "vs Yesterday ($)", "Last Month ($)"}
+	}
+}
+
+func getIncrease(c acos.Cost, compareTo CompareTo) float64 {
+	if compareTo == LastWeek {
+		return c.LatestWeeklyCostIncrease
+	} else {
+		return c.LatestDailyCostIncrease
+	}
 }
 
 func getAmountPrefix(amount float64) string {

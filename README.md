@@ -10,7 +10,7 @@ A monkey increases your visibility on AWS bills via Slack 🐒
 
 ## Installation
 
-`aws-bills-on-slack` is built to run on AWS Lambda on a daily basis.
+`aws-bills-on-slack` is built to run on AWS Lambda on a daily/weekly basis.
 
 ### Install using AWS SAM (tested and recommended)
 
