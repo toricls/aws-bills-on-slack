@@ -20,6 +20,8 @@ const (
 	LastWeek  CompareTo = "LAST_WEEK"
 )
 
+var defaultMessage = "Here's our AWS bills"
+
 func handler(ctx context.Context, event interface{}) ([]byte, error) {
 	var err error
 	var accounts acos.Accounts
@@ -56,6 +58,11 @@ func handler(ctx context.Context, event interface{}) ([]byte, error) {
 		asOf = time.Now().UTC()
 	}
 
+	message := os.Getenv("MESSAGE")
+	if message == "" {
+		message = defaultMessage
+	}
+
 	var costs acos.Costs
 	opt := acos.NewGetCostsOption(asOf)
 	if costs, err = acos.GetCosts(ctx, accounts, opt); err != nil {
@@ -64,7 +71,7 @@ func handler(ctx context.Context, event interface{}) ([]byte, error) {
 	res := print(&costs, asOf, compareTo)
 
 	payload := slack.Payload{
-		Text:      "Here's our AWS bills:```\n" + res + "```",
+		Text:      message + ":```\n" + res + "```",
 		Username:  "I'm Tori's monkey",
 		IconEmoji: ":monkey:",
 	}
