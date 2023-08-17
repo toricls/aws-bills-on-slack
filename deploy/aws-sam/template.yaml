@@ -1,0 +1,67 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  aws-bills-on-slack stdout AWS bills to Slack channel
+
+Parameters:
+  MessageText:
+    Type: String
+    Default: "Here's the daily bill on our AWS accounts:"
+    Description: 'A short text that is prefixed to Slack message. See the screenshot example here - https://github.com/toricls/aws-bills-on-slack#readme.'
+    MaxLength: 256
+    MinLength: 0
+  OuId:
+    Type: String
+    Description: 'A Root ID or an OrganizationalUnit (OU) ID of your AWS Organization. aws-bills-on-slack fetchs the cost of AWS accounts under the specified Root or OU.'
+    AllowedPattern: '^(r-[0-9a-z]{4,32})|(ou-[0-9a-z]{4,32}-[a-z0-9]{8,32})$'
+  SlackIncomingWebhookUrl:
+    Type: String
+    Description: 'A url of Slack Incoming Webhook. See the doc to get your own - '
+    AllowedPattern: '^https\:\/\/hooks\.slack\.com\/.*$'
+  CronScheduleString:
+    Type: String
+    Description: "A cron string to run the script. The defualt value is 'cron(0 0 * * ? *)', which means the script would run at 0 AM UTC every day. See the expressions guide here - https://docs.aws.amazon.com/scheduler/latest/UserGuide/schedule-types.html#cron-based."
+    Default: 'cron(0 0 * * ? *)'
+
+Globals:
+  Function:
+    Timeout: 10
+
+Resources:
+  AwsBillsOnSlackFunc:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: ./../../ # Points the root directory of the repository
+      Handler: main
+      Runtime: go1.x
+      Architectures:
+        - x86_64
+      Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
+        Variables:
+          OU_ID: !Ref OuId
+          SLACK_WEBHOOK: !Ref SlackIncomingWebhookUrl
+          MESSAGE: !Ref MessageText
+      Policies:
+        - Statement:
+          - Sid: AllowListAccountsAndGetCosts
+            Effect: Allow
+            Action:
+            - organizations:ListAccountsForParent
+            - ce:GetCostAndUsage
+            Resource: '*'
+      Events:
+        EveryDayWithTimeWindow:
+          Type: ScheduleV2
+          Properties:
+            Description: Schedule with flexible time-window for Slack notification
+            FlexibleTimeWindow:
+              MaximumWindowInMinutes: 5
+              Mode: FLEXIBLE
+            State: ENABLED
+            Name: aws-bills-on-slack-schedule
+            ScheduleExpression: !Ref CronScheduleString
+
+Outputs:
+  AwsBillsOnSlackFuncArn:
+    Description: "aws-bills-on-slack Lambda Function ARN"
+    Value: !GetAtt AwsBillsOnSlackFunc.Arn

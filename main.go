@@ -21,8 +21,6 @@ const (
 	LastWeek  CompareTo = "LAST_WEEK"
 )
 
-var defaultMessage = "Here's our AWS bills"
-
 func handler(ctx context.Context, event interface{}) ([]byte, error) {
 	var err error
 	var accounts acos.Accounts
@@ -60,8 +58,8 @@ func handler(ctx context.Context, event interface{}) ([]byte, error) {
 	}
 
 	message := os.Getenv("MESSAGE")
-	if message == "" {
-		message = defaultMessage
+	if len(message) > 0 {
+		message = message + "\n"
 	}
 
 	var costs acos.Costs
@@ -73,7 +71,7 @@ func handler(ctx context.Context, event interface{}) ([]byte, error) {
 	res := print(&costs, asOf, compareTo)
 
 	payload := slack.Payload{
-		Text:      message + ":```\n" + res + "```",
+		Text:      message + "```" + res + "```",
 		Username:  "I'm Tori's monkey",
 		IconEmoji: ":monkey:",
 	}

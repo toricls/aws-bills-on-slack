@@ -1,2 +1,4 @@
 .aws-sam
+deploy/aws-sam/samconfig.toml
+samconfig.toml
 
