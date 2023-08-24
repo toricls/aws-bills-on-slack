@@ -4,10 +4,16 @@ Description: >
   aws-bills-on-slack stdout AWS bills to Slack channel
 
 Parameters:
-  MessageText:
+  HeaderMessageText:
     Type: String
     Default: "Here's the daily bill on our AWS accounts:"
     Description: 'A short text that is prefixed to Slack message. See the screenshot example here - https://github.com/toricls/aws-bills-on-slack#readme.'
+    MaxLength: 256
+    MinLength: 0
+  FooterMessageText:
+    Type: String
+    Default: ""
+    Description: 'A short text that is suffixed to Slack message.'
     MaxLength: 256
     MinLength: 0
   OuId:
@@ -40,7 +46,8 @@ Resources:
         Variables:
           OU_ID: !Ref OuId
           SLACK_WEBHOOK: !Ref SlackIncomingWebhookUrl
-          MESSAGE: !Ref MessageText
+          HEADER_TEXT: !Ref HeaderMessageText
+          FOOTER_TEXT: !Ref FooterMessageText
       Policies:
         - Statement:
           - Sid: AllowListAccountsAndGetCosts

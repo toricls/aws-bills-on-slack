@@ -57,9 +57,13 @@ func handler(ctx context.Context, event interface{}) ([]byte, error) {
 		asOf = time.Now().UTC()
 	}
 
-	message := os.Getenv("MESSAGE")
-	if len(message) > 0 {
-		message = message + "\n"
+	headerText := os.Getenv("HEADER_TEXT")
+	if len(headerText) > 0 {
+		headerText = headerText + "\n"
+	}
+	footerText := os.Getenv("FOOTER_TEXT")
+	if len(footerText) > 0 {
+		footerText = "\n" + footerText
 	}
 
 	var costs acos.Costs
@@ -71,7 +75,7 @@ func handler(ctx context.Context, event interface{}) ([]byte, error) {
 	res := print(&costs, asOf, compareTo)
 
 	payload := slack.Payload{
-		Text:      message + "```" + res + "```",
+		Text:      headerText + "```" + res + "```" + footerText,
 		Username:  "I'm Tori's monkey",
 		IconEmoji: ":monkey:",
 	}
