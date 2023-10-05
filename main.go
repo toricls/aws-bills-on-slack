@@ -26,10 +26,6 @@ func handler(ctx context.Context, event interface{}) ([]byte, error) {
 	var accounts acos.Accounts
 
 	ouId := os.Getenv("OU_ID")
-	if ouId == "" {
-		// Try to get ROOT_OU_ID if OU_ID is not specified
-		ouId = os.Getenv("ROOT_OU_ID")
-	}
 	if ouId != "" {
 		// Get all AWS accounts in the specified OU
 		if accounts, err = acos.ListAccountsByOu(ctx, ouId); err != nil {
