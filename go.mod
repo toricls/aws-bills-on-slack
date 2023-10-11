@@ -31,6 +31,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/smartystreets/goconvey v1.8.1 // indirect
-	golang.org/x/net v0.14.0 // indirect
+	golang.org/x/net v0.17.0 // indirect
 	moul.io/http2curl v1.0.0 // indirect
 )
