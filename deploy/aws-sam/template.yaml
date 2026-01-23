@@ -18,8 +18,9 @@ Parameters:
     MinLength: 0
   OuId:
     Type: String
-    Description: 'A Root ID or an OrganizationalUnit (OU) ID of your AWS Organization. aws-bills-on-slack fetchs the cost of AWS accounts under the specified Root or OU.'
-    AllowedPattern: '^(r-[0-9a-z]{4,32})|(ou-[0-9a-z]{4,32}-[a-z0-9]{8,32})$'
+    Description: 'A Root ID or an OrganizationalUnit (OU) ID of your AWS Organization. aws-bills-on-slack fetches the cost of AWS accounts under the specified Root or OU. If left blank, costs are fetched for all accounts in your organization.'
+    AllowedPattern: '^(r-[0-9a-z]{4,32})|(ou-[0-9a-z]{4,32}-[a-z0-9]{8,32})|()$'
+    Default: ""
   SlackIncomingWebhookUrl:
     Type: String
     Description: 'A url of Slack Incoming Webhook. See the doc to get your own - '
@@ -32,6 +33,12 @@ Parameters:
 Globals:
   Function:
     Timeout: 10
+
+Conditions:
+  IsOuIdEmpty:
+    !Equals
+      - !Ref OuId
+      - ""
 
 Resources:
   AwsBillsOnSlackFunc:
@@ -53,7 +60,10 @@ Resources:
           - Sid: AllowListAccountsAndGetCosts
             Effect: Allow
             Action:
-            - organizations:ListAccountsForParent
+            - !If
+              - IsOuIdEmpty
+              - organizations:ListAccounts
+              - organizations:ListAccountsForParent
             - ce:GetCostAndUsage
             Resource: '*'
       Events:
