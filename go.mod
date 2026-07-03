@@ -1,6 +1,6 @@
 module github.com/toricls/aws-bills
 
-go 1.23.0
+go 1.25.0
 
 require (
 	github.com/ashwanthkumar/slack-go-webhook v0.0.0-20200209025033-430dd4e66960
@@ -31,6 +31,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/smartystreets/goconvey v1.8.1 // indirect
-	golang.org/x/net v0.38.0 // indirect
+	golang.org/x/net v0.55.0 // indirect
 	moul.io/http2curl v1.0.0 // indirect
 )
